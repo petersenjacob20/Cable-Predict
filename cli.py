@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 from lifelines import KaplanMeierFitter
@@ -24,16 +25,20 @@ def add_event(connector_type: str, serial_number: str, cycles: int) -> None:
     wb.save(EXCEL_FILE)
 
 
-def analyze() -> None:
-    """Perform survival analysis and write predictions."""
+def analyze() -> Optional[pd.DataFrame]:
+    """Perform survival analysis and write predictions.
+
+    Returns the predictions DataFrame or ``None`` if analysis could not be
+    performed.
+    """
     if not EXCEL_FILE.exists():
         print("Excel file not found.")
-        return
+        return None
     try:
         events_df = pd.read_excel(EXCEL_FILE, sheet_name="Events")
     except ValueError:
         print("Events sheet not found.")
-        return
+        return None
     results = []
     for connector, group in events_df.groupby("connector_type"):
         kmf = KaplanMeierFitter()
@@ -58,6 +63,7 @@ def analyze() -> None:
         writer.sheets = {ws.title: ws for ws in wb.worksheets}
         pred_df.to_excel(writer, sheet_name="Predictions", index=False)
     print("Analysis written to Predictions sheet.")
+    return pred_df
 
 
 def main() -> None:
