@@ -5,14 +5,20 @@ import pandas as pd
 from lifelines import KaplanMeierFitter
 from openpyxl import Workbook, load_workbook
 
-EXCEL_FILE = Path(__file__).resolve().parent / "Cable Tester Count" / "Cable Tracker.xlsx"
+# Default location for the workbook used by the CLI. The GUI can supply a
+# different path when invoking these functions.
+DEFAULT_EXCEL_FILE = (
+    Path(__file__).resolve().parent / "Cable Tester Count" / "Cable Tracker.xlsx"
+)
 
 
-def add_event(connector_type: str, serial_number: str, cycles: int) -> None:
+def add_event(
+    excel_file: Path, connector_type: str, serial_number: str, cycles: int
+) -> None:
     """Append a failure event to the Events sheet."""
-    EXCEL_FILE.parent.mkdir(parents=True, exist_ok=True)
-    if EXCEL_FILE.exists():
-        wb = load_workbook(EXCEL_FILE)
+    excel_file.parent.mkdir(parents=True, exist_ok=True)
+    if excel_file.exists():
+        wb = load_workbook(excel_file)
     else:
         wb = Workbook()
     if "Events" in wb.sheetnames:
@@ -21,16 +27,16 @@ def add_event(connector_type: str, serial_number: str, cycles: int) -> None:
         ws = wb.create_sheet("Events")
         ws.append(["connector_type", "serial_number", "cycles", "event"])
     ws.append([connector_type, serial_number, cycles, 1])
-    wb.save(EXCEL_FILE)
+    wb.save(excel_file)
 
 
-def analyze() -> None:
+def analyze(excel_file: Path) -> None:
     """Perform survival analysis and write predictions."""
-    if not EXCEL_FILE.exists():
+    if not excel_file.exists():
         print("Excel file not found.")
         return
     try:
-        events_df = pd.read_excel(EXCEL_FILE, sheet_name="Events")
+        events_df = pd.read_excel(excel_file, sheet_name="Events")
     except ValueError:
         print("Events sheet not found.")
         return
@@ -50,10 +56,10 @@ def analyze() -> None:
             }
         )
     pred_df = pd.DataFrame(results)
-    wb = load_workbook(EXCEL_FILE)
+    wb = load_workbook(excel_file)
     if "Predictions" in wb.sheetnames:
         del wb["Predictions"]
-    with pd.ExcelWriter(EXCEL_FILE, engine="openpyxl", mode="a") as writer:
+    with pd.ExcelWriter(excel_file, engine="openpyxl", mode="a") as writer:
         writer.book = wb
         writer.sheets = {ws.title: ws for ws in wb.worksheets}
         pred_df.to_excel(writer, sheet_name="Predictions", index=False)
@@ -68,14 +74,26 @@ def main() -> None:
     add_parser.add_argument("--connector", required=True, help="Connector type")
     add_parser.add_argument("--serial", required=True, help="Serial number")
     add_parser.add_argument("--cycles", required=True, type=int, help="Cycle count")
+    add_parser.add_argument(
+        "--file",
+        default=DEFAULT_EXCEL_FILE,
+        type=Path,
+        help="Path to Excel workbook",
+    )
 
-    subparsers.add_parser("analyze", help="Run survival analysis")
+    analyze_parser = subparsers.add_parser("analyze", help="Run survival analysis")
+    analyze_parser.add_argument(
+        "--file",
+        default=DEFAULT_EXCEL_FILE,
+        type=Path,
+        help="Path to Excel workbook",
+    )
 
     args = parser.parse_args()
     if args.command == "add-event":
-        add_event(args.connector, args.serial, args.cycles)
+        add_event(args.file, args.connector, args.serial, args.cycles)
     elif args.command == "analyze":
-        analyze()
+        analyze(args.file)
     else:
         parser.print_help()
 
