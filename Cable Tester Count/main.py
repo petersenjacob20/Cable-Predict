@@ -1,6 +1,7 @@
 # main.py
 from uploadTxtFiles import parse_log_file, is_already_logged
 from updateSpreadsheet import update_cable_counts
+from helper import ensure_excel_with_sheets
 
 import os
 
@@ -8,6 +9,7 @@ LOG_FOLDER = "./logs"
 EXCEL_FILE = "Cable Tracker.xlsx"
 
 def main():
+    ensure_excel_with_sheets(EXCEL_FILE)
     for filename in os.listdir(LOG_FOLDER):
         if filename.endswith(".log") or filename.endswith(".txt"):
             filepath = os.path.join(LOG_FOLDER, filename)
