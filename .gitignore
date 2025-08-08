@@ -6,6 +6,9 @@ __pycache__/
 # Logs
 *.log
 
+# Excel files
+*.xlsx
+
 # Jupyter Notebook checkpoints
 .ipynb_checkpoints
 
