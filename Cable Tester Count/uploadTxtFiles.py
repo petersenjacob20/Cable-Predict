@@ -1,12 +1,15 @@
 import re
-from openpyxl import load_workbook
 
 def parse_log_file(filepath):
     with open(filepath, 'r') as file:
         content = file.read()
 
     # Correct regex (not double-escaped)
-    match_timestamp = re.search(r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+info\s+Test log started", content)
+    match_timestamp = re.search(
+        r"(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+info\s+Test log started",
+        content,
+        re.IGNORECASE,
+    )
     if not match_timestamp:
         return None
     timestamp = match_timestamp.group(1)
@@ -32,6 +35,7 @@ def parse_log_file(filepath):
     }
 
 def is_already_logged(excel_file, timestamp):
+    from openpyxl import load_workbook
     wb = load_workbook(excel_file)
     for sheet in wb.sheetnames:
         if sheet.startswith("CableTester Logs"):
